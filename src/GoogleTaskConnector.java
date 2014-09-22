@@ -1,3 +1,8 @@
+import com.google.api.client.http.HttpTransport;
+import com.google.api.client.http.javanet.NetHttpTransport;
+import com.google.api.client.json.jackson2.JacksonFactory;
+import com.google.api.services.tasks.Tasks;
+import com.google.api.services.tasks.model.*;
 
 /**
  * This class is used to connect to Google Task API.
@@ -11,5 +16,7 @@
  */
 public class GoogleTaskConnector {
 	
-
+	public GoogleTaskConnector() {
+		
+	}
 }
