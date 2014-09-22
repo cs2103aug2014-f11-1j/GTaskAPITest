@@ -11,6 +11,7 @@ import com.google.api.client.http.HttpTransport;
 import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.jackson2.JacksonFactory;
+import com.google.api.client.util.DateTime;
 import com.google.api.services.tasks.Tasks;
 import com.google.api.services.tasks.TasksScopes;
 import com.google.api.services.tasks.model.Task;
@@ -32,6 +33,9 @@ public class GoogleTaskConnector {
 	private static final String APPLICATION_NAME = "Task Commander";
 
 	private static final String REDIRECT_URI = "urn:ietf:wg:oauth:2.0:oob";
+	
+	private static final String MESSAGE_EXCEPTION_IO = "Unable to read the data retrieved.";
+	private static final String MESSAGE_ARGUMENTS_NULL = "Null arguments given.";
 
 	private Tasks service;
 
@@ -55,7 +59,8 @@ public class GoogleTaskConnector {
 	 * out a URL. The user has to enter the given URL into 
 	 * a browser and login to Google, then paste the returned
 	 * authorisation code into command line. 
-	 *
+	 * 
+	 * @throws IOException
 	 */
 	public void setUp() throws IOException {
 		HttpTransport httpTransport = new NetHttpTransport();
@@ -79,14 +84,46 @@ public class GoogleTaskConnector {
 		System.out.println("oops3");
 
 		service = new Tasks.Builder(httpTransport, jsonFactory, credential).setApplicationName(APPLICATION_NAME).build();
-		
-		Tasks.TasksOperations.List request = service.tasks().list("@default");
-		List<Task> tasks = request.execute().getItems();
 
-		for (Task task : tasks) {
-		  System.out.println(task.getTitle());
-		}
 		System.out.println("oops4");
 	}
-	
+
+	/**
+	 * Prints out all tasks.
+	 * @throws IOException
+	 */
+	public String getAllTasks() {
+		try {
+			Tasks.TasksOperations.List request = service.tasks().list("@default");
+			List<Task> tasks = request.execute().getItems();
+
+			String result = "";
+			for (Task task : tasks) {
+				result += task.getTitle() + "\n";
+			}
+			return result;
+		} catch (IOException e) {
+			return MESSAGE_EXCEPTION_IO;
+		}
+	}
+
+	public String addTask(String title, String notes, DateTime date) {
+		if (title == null || notes == null || date == null) {
+			return MESSAGE_ARGUMENTS_NULL;
+		} else {
+			Task task = new Task();
+			task.setTitle("New Task");
+			task.setNotes("Please complete me");
+			task.setDue(new DateTime(System.currentTimeMillis() + 3600000));
+
+			try {
+				Tasks.TasksOperations.Insert request = service.tasks().insert("@default", task);
+				Task result = request.execute();
+				return result.getTitle();
+			} catch (IOException e) {
+				return MESSAGE_EXCEPTION_IO;
+			}
+		}
+	}
+
 }
