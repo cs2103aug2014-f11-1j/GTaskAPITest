@@ -30,15 +30,20 @@ public class GoogleTaskConnector {
 	
 	  private static final String CLIENT_ID = "1009064713944-qqeb136ojidkjv4usaog806gcafu5dmn.apps.googleusercontent.com";
 	  private static final String CLIENT_SECRET = "9ILpkbnlGwVMQiqh10za3exf";
-
-	  private static final String REDIRECT_URI = "urn:ietf:wg:oauth:2.0:oob";
+	  private static final String APPLICATION_NAME = "Task Commander";
 	  
+	  private static final String REDIRECT_URI = "urn:ietf:wg:oauth:2.0:oob";
+
 	  private static final String[] TASKS_SCOPES = {"https://www.googleapis.com/auth/tasks"};
 	  
 	  private Tasks _service;
 
 	public GoogleTaskConnector() {
-
+		try {
+			setUp();
+		} catch (IOException e) {
+			System.out.println("Unable to login.");
+		}
 	}
 
 	public void setUp() throws IOException {
@@ -59,6 +64,6 @@ public class GoogleTaskConnector {
 	    GoogleTokenResponse response = flow.newTokenRequest(code).setRedirectUri(REDIRECT_URI).execute();
 	    GoogleCredential credential = new GoogleCredential().setFromTokenResponse(response);
 	    
-	    _service = new Tasks(httpTransport, jsonFactory, credential);
+	    _service = new Tasks.Builder(httpTransport, jsonFactory, credential).setApplicationName(APPLICATION_NAME).build();
 	}
 }

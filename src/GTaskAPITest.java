@@ -6,4 +6,7 @@
 
 public class GTaskAPITest {
 
+	public static void main(String[] args) {
+		GoogleTaskConnector gtc = new GoogleTaskConnector();
+	}
 }
