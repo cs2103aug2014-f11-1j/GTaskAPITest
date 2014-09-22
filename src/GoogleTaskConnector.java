@@ -33,7 +33,7 @@ public class GoogleTaskConnector {
 	private static final String APPLICATION_NAME = "Task Commander";
 
 	private static final String REDIRECT_URI = "urn:ietf:wg:oauth:2.0:oob";
-	
+
 	private static final String MESSAGE_EXCEPTION_IO = "Unable to read the data retrieved.";
 	private static final String MESSAGE_ARGUMENTS_NULL = "Null arguments given.";
 
@@ -108,14 +108,18 @@ public class GoogleTaskConnector {
 	}
 
 	public String addTask(String title, String notes, DateTime date) {
-		if (title == null || notes == null || date == null) {
+		if (title == null) {
 			return MESSAGE_ARGUMENTS_NULL;
 		} else {
 			Task task = new Task();
-			task.setTitle("New Task");
-			task.setNotes("Please complete me");
-			task.setDue(new DateTime(System.currentTimeMillis() + 3600000));
-
+			task.setTitle(title);
+			if (notes != null) {
+				task.setNotes(notes);
+			}
+			if (date != null) {
+				task.setDue(date);
+			}
+			
 			try {
 				Tasks.TasksOperations.Insert request = service.tasks().insert("@default", task);
 				Task result = request.execute();
