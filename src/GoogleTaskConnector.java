@@ -45,11 +45,7 @@ public class GoogleTaskConnector {
 	 * 
 	 */
 	public GoogleTaskConnector() {
-		try {
-			setUp();
-		} catch (IOException e) {
-			System.out.println("Unable to login.");
-		}
+		setUp();
 	}
 
 	/**
@@ -60,9 +56,8 @@ public class GoogleTaskConnector {
 	 * a browser and login to Google, then paste the returned
 	 * authorisation code into command line. 
 	 * 
-	 * @throws IOException
 	 */
-	public void setUp() throws IOException {
+	public void setUp(){
 		HttpTransport httpTransport = new NetHttpTransport();
 		JsonFactory jsonFactory = new JacksonFactory();
 
@@ -75,22 +70,27 @@ public class GoogleTaskConnector {
 		System.out.println("Please open the following URL in your browser then type the authorization code:");
 		System.out.println("  " + url);
 		BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
-		String code = br.readLine();
-		br.close();
-		System.out.println("oops");
-		GoogleTokenResponse response = flow.newTokenRequest(code).setRedirectUri(REDIRECT_URI).execute();
-		System.out.println("oops2");
-		GoogleCredential credential = new GoogleCredential().setFromTokenResponse(response);
-		System.out.println("oops3");
+		String code = "";
+		try {
+			code = br.readLine();
+			br.close();
+		} catch (IOException e) {
+			System.out.println(MESSAGE_EXCEPTION_IO);
+		}
 
-		service = new Tasks.Builder(httpTransport, jsonFactory, credential).setApplicationName(APPLICATION_NAME).build();
-
-		System.out.println("oops4");
+		try {
+			GoogleTokenResponse response = flow.newTokenRequest(code).setRedirectUri(REDIRECT_URI).execute();
+			GoogleCredential credential = new GoogleCredential().setFromTokenResponse(response);
+			service = new Tasks.Builder(httpTransport, jsonFactory, credential).setApplicationName(APPLICATION_NAME).build();
+		} catch (IOException e) {
+			System.out.println(MESSAGE_EXCEPTION_IO);
+		}
 	}
 
 	/**
 	 * Prints out all tasks.
-	 * @throws IOException
+	 * 
+	 * @return       Feedback for user.
 	 */
 	public String getAllTasks() {
 		try {
@@ -107,6 +107,14 @@ public class GoogleTaskConnector {
 		}
 	}
 
+	/**
+	 * Adds task with given title, notes and date object.
+	 * 
+	 * @param title  Title of task.
+	 * @param notes  Notes for task.
+	 * @param date   DateTime object describing due date of task.
+	 * @return       Feedback for user.
+	 */
 	public String addTask(String title, String notes, DateTime date) {
 		if (title == null) {
 			return MESSAGE_ARGUMENTS_NULL;
@@ -119,7 +127,7 @@ public class GoogleTaskConnector {
 			if (date != null) {
 				task.setDue(date);
 			}
-			
+
 			try {
 				Tasks.TasksOperations.Insert request = service.tasks().insert("@default", task);
 				Task result = request.execute();
