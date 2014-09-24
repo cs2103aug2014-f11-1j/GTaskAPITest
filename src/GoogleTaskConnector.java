@@ -39,8 +39,8 @@ public class GoogleTaskConnector {
 
 	private static final String REDIRECT_URI = "urn:ietf:wg:oauth:2.0:oob";
 
-	private static final String DATA_STORE_FILE_NAME = "C:/Users/Mishie/Documents/Eclipse_Workspaces/CS2103/GTaskAPITest/credentials";
-
+	private static final String DATA_STORE_DIR = "C:/Users/Mishie/Documents/Eclipse_Workspaces/CS2103/GTaskAPITest/credentials";
+	private static final String DATA_STORE_NAME = "credentialDataStore";
 	private static final String MESSAGE_EXCEPTION_IO = "Unable to read the data retrieved.";
 	private static final String MESSAGE_ARGUMENTS_NULL = "Null arguments given.";
 
@@ -70,9 +70,9 @@ public class GoogleTaskConnector {
 		jsonFactory = new JacksonFactory();
 
 		try {
-			File dataStoreFile = new File(DATA_STORE_FILE_NAME);
+			File dataStoreFile = new File(DATA_STORE_DIR);
 			dataStoreFactory = new FileDataStoreFactory(dataStoreFile);
-			dataStore = dataStoreFactory.getDataStore("credentialDataStore");
+			dataStore = dataStoreFactory.getDataStore(DATA_STORE_NAME);
 		} catch (IOException e) {
 			System.out.println(MESSAGE_EXCEPTION_IO);
 		}
@@ -115,6 +115,7 @@ public class GoogleTaskConnector {
 			}else{
 			    credential.setFromTokenResponse(requestAuthorisation());
 			}
+			saveCredential(credential);
 		} catch (IOException e) {
 			System.out.println(MESSAGE_EXCEPTION_IO);
 		}
@@ -124,12 +125,12 @@ public class GoogleTaskConnector {
 	/**
 	 * Saves given credential in the datastore.
 	 */
-	public void saveCredential(String username, GoogleCredential credential){
+	public void saveCredential(GoogleCredential credential){
 		StoredCredential storedCredential = new StoredCredential();
 		storedCredential.setAccessToken(credential.getAccessToken());
 		storedCredential.setRefreshToken(credential.getRefreshToken());
 		try {
-			dataStore.set(username, storedCredential);
+			dataStore.set(USERNAME, storedCredential);
 		} catch (IOException e) {
 			System.out.println(MESSAGE_EXCEPTION_IO);
 		}
