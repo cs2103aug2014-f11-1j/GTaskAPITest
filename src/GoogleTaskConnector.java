@@ -51,11 +51,13 @@ public class GoogleTaskConnector {
 	
 	private static final String USERNAME = "User";
 
-	private Tasks service;
+	// Global instances
+	private static Tasks service;
+	private static FileDataStoreFactory dataStoreFactory;
+	
 	private HttpTransport httpTransport;
 	private JsonFactory jsonFactory;
 	private GoogleAuthorizationCodeFlow flow;
-	private FileDataStoreFactory dataStoreFactory;
 	private DataStore<StoredCredential> dataStore;
 
 	/**
@@ -87,29 +89,17 @@ public class GoogleTaskConnector {
 	 * 
 	 */
 	public void setUp(){
-		try {
-			flow = buildAuthorisationCodeFlow(httpTransport, jsonFactory, dataStoreFactory);
-		} catch (IOException e) {
-			System.out.println(MESSAGE_EXCEPTION_IO);
-		}
-
-		askUserForAuthorisationCode(flow);
-		String code = getUserInput();
-
-		GoogleTokenResponse response = getTokenResponse(flow, code);
-		GoogleCredential credential = getCredential(response);
+		GoogleCredential credential = getCredential();
 		service = new Tasks.Builder(httpTransport, jsonFactory, credential)
 		.setApplicationName(APPLICATION_NAME).build();
-
 	}
 
 	/**
 	 * Gets a GoogleCredential for use in Google API requests,
 	 * either from storage or by sending a request to Google.
-	 * @param response
 	 * @return           Credential
 	 */
-	private GoogleCredential getCredential(GoogleTokenResponse response) {
+	private GoogleCredential getCredential() {
 		GoogleCredential credential = new GoogleCredential.Builder()
 		.setJsonFactory(jsonFactory)
 		.setTransport(httpTransport)
@@ -123,25 +113,47 @@ public class GoogleTaskConnector {
 			    credential.setAccessToken(storedCredential.getAccessToken());
 			    credential.setRefreshToken(storedCredential.getRefreshToken());
 			}else{
-			    //		.setFromTokenResponse(response);
+			    credential.setFromTokenResponse(requestAuthorisation());
 			}
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			System.out.println(MESSAGE_EXCEPTION_IO);
 		}
 		return credential;
 	}
 
+	/**
+	 * Saves given credential in the datastore.
+	 */
 	public void saveCredential(String username, GoogleCredential credential){
 		StoredCredential storedCredential = new StoredCredential();
 		storedCredential.setAccessToken(credential.getAccessToken());
 		storedCredential.setRefreshToken(credential.getRefreshToken());
-		//dataStoreFactory.set(username, storedCredential);
+		try {
+			dataStore.set(username, storedCredential);
+		} catch (IOException e) {
+			System.out.println(MESSAGE_EXCEPTION_IO);
+		}
+	}
+	
+	/**
+	 * Returns a token response after requesting user
+	 * login and authorisation.
+	 */
+	private GoogleTokenResponse requestAuthorisation() {
+		try {
+			flow = buildAuthorisationCodeFlow(httpTransport, jsonFactory, dataStoreFactory);
+		} catch (IOException e) {
+			System.out.println(MESSAGE_EXCEPTION_IO);
+		}
+		
+		askUserForAuthorisationCode(flow);
+		String code = getUserInput();
 
+		return getTokenResponse(flow, code);
 	}
 
 	/**
-	 * Sends a token request to get a GoogleTokenRequest.
+	 * Sends a token request to get a GoogleTokenResponse.
 	 * If an IOException occurs, returns null.
 	 * 
 	 * @param flow
