@@ -5,6 +5,8 @@ import java.io.InputStreamReader;
 import java.util.Arrays;
 import java.util.List;
 
+import com.google.api.client.auth.oauth2.DataStoreCredentialRefreshListener;
+import com.google.api.client.auth.oauth2.StoredCredential;
 import com.google.api.client.googleapis.auth.oauth2.GoogleAuthorizationCodeFlow;
 import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;
 import com.google.api.client.googleapis.auth.oauth2.GoogleTokenResponse;
@@ -13,6 +15,7 @@ import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.api.client.util.DateTime;
+import com.google.api.client.util.store.DataStore;
 import com.google.api.client.util.store.FileDataStoreFactory;
 import com.google.api.services.tasks.Tasks;
 import com.google.api.services.tasks.TasksScopes;
@@ -40,16 +43,20 @@ public class GoogleTaskConnector {
 
 	private static final String MESSAGE_EXCEPTION_IO = "Unable to read the data retrieved.";
 	private static final String MESSAGE_ARGUMENTS_NULL = "Null arguments given.";
-	
+
 	// Option to request access type for application. Can be "online" or "offline".
 	private static final String FLOW_ACCESS_TYPE = "offline";
 	// Option to request approval prompt type for application. Can be "force" or "auto".
 	private static final String FLOW_APPROVAL_PROMPT = "auto";
+	
+	private static final String USERNAME = "User";
 
 	private Tasks service;
 	private HttpTransport httpTransport;
 	private JsonFactory jsonFactory;
 	private GoogleAuthorizationCodeFlow flow;
+	private FileDataStoreFactory dataStoreFactory;
+	private DataStore<StoredCredential> dataStore;
 
 	/**
 	 * Returns a GoogleTaskConnector after trying to 
@@ -59,6 +66,14 @@ public class GoogleTaskConnector {
 	public GoogleTaskConnector() {
 		httpTransport = new NetHttpTransport();
 		jsonFactory = new JacksonFactory();
+
+		try {
+			File dataStoreFile = new File(DATA_STORE_FILE_NAME);
+			dataStoreFactory = new FileDataStoreFactory(dataStoreFile);
+			dataStore = dataStoreFactory.getDataStore("credentialDataStore");
+		} catch (IOException e) {
+			System.out.println(MESSAGE_EXCEPTION_IO);
+		}
 		setUp();
 	}
 
@@ -72,12 +87,8 @@ public class GoogleTaskConnector {
 	 * 
 	 */
 	public void setUp(){
-
-		File dataStoreFile = new File(DATA_STORE_FILE_NAME);
-
 		try {
-			FileDataStoreFactory fdsf = new FileDataStoreFactory(dataStoreFile);
-			flow = buildAuthorisationCodeFlow(httpTransport, jsonFactory, fdsf);
+			flow = buildAuthorisationCodeFlow(httpTransport, jsonFactory, dataStoreFactory);
 		} catch (IOException e) {
 			System.out.println(MESSAGE_EXCEPTION_IO);
 		}
@@ -86,25 +97,47 @@ public class GoogleTaskConnector {
 		String code = getUserInput();
 
 		GoogleTokenResponse response = getTokenResponse(flow, code);
-		GoogleCredential credential = buildCredential(response);
+		GoogleCredential credential = getCredential(response);
 		service = new Tasks.Builder(httpTransport, jsonFactory, credential)
 		.setApplicationName(APPLICATION_NAME).build();
 
 	}
 
 	/**
-	 * Builds a GoogleCredential for use in Google API requests.
+	 * Gets a GoogleCredential for use in Google API requests,
+	 * either from storage or by sending a request to Google.
 	 * @param response
 	 * @return           Credential
 	 */
-	private GoogleCredential buildCredential(GoogleTokenResponse response) {
+	private GoogleCredential getCredential(GoogleTokenResponse response) {
 		GoogleCredential credential = new GoogleCredential.Builder()
 		.setJsonFactory(jsonFactory)
 		.setTransport(httpTransport)
-		.setClientSecrets(CLIENT_ID, CLIENT_SECRET).build()
-		.setAccessToken(response.getAccessToken())
-		.setRefreshToken(response.getRefreshToken());
+		.setClientSecrets(CLIENT_ID, CLIENT_SECRET)
+		.addRefreshListener(new DataStoreCredentialRefreshListener(USERNAME, dataStore))
+		.build();
+		
+		try {
+			if(dataStore.containsKey(USERNAME)){
+			    StoredCredential storedCredential = dataStore.get(USERNAME);
+			    credential.setAccessToken(storedCredential.getAccessToken());
+			    credential.setRefreshToken(storedCredential.getRefreshToken());
+			}else{
+			    //		.setFromTokenResponse(response);
+			}
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		return credential;
+	}
+
+	public void saveCredential(String username, GoogleCredential credential){
+		StoredCredential storedCredential = new StoredCredential();
+		storedCredential.setAccessToken(credential.getAccessToken());
+		storedCredential.setRefreshToken(credential.getRefreshToken());
+		//dataStoreFactory.set(username, storedCredential);
+
 	}
 
 	/**
