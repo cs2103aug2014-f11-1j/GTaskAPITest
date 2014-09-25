@@ -39,7 +39,7 @@ public class GoogleTaskConnector {
 
 	private static final String REDIRECT_URI = "urn:ietf:wg:oauth:2.0:oob";
 
-	private static final String DATA_STORE_DIR = "C:/Users/Mishie/Documents/Eclipse_Workspaces/CS2103/GTaskAPITest/credentials";
+	private static final String DATA_STORE_DIR = "credentials";
 	private static final String DATA_STORE_NAME = "credentialDataStore";
 	private static final String MESSAGE_EXCEPTION_IO = "Unable to read the data retrieved.";
 	private static final String MESSAGE_ARGUMENTS_NULL = "Null arguments given.";
@@ -81,12 +81,8 @@ public class GoogleTaskConnector {
 
 	/**
 	 * Connects to Google and initialises Tasks service.
-	 * 
-	 * Makes an authorisation request to Google and prints
-	 * out a URL. The user has to enter the given URL into 
-	 * a browser and login to Google, then paste the returned
-	 * authorisation code into command line. 
-	 * 
+	 * Requests can be sent once this method is successfully
+	 * executed.
 	 */
 	public void setUp(){
 		GoogleCredential credential = getCredential();
@@ -139,6 +135,11 @@ public class GoogleTaskConnector {
 	/**
 	 * Returns a token response after requesting user
 	 * login and authorisation.
+	 * 
+	 * Makes an authorisation request to Google and prints
+	 * out a URL. The user has to enter the given URL into 
+	 * a browser and login to Google, then paste the returned
+	 * authorisation code into command line. 
 	 */
 	private GoogleTokenResponse requestAuthorisation() {
 		try {
